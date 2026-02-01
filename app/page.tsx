@@ -155,7 +155,7 @@ export default function HomePage() {
                                 {/* ================================================
                     CUSTOMIZE: Update with your bio
                     ================================================ */}
-                                Hello! I'm a visual artist passionate about exploring the
+                                Hello! I&apos;m a visual artist passionate about exploring the
                                 boundaries between digital and traditional art forms. My work
                                 often reflects themes of nature, emotion, and the human
                                 experience.
@@ -177,10 +177,10 @@ export default function HomePage() {
             {/* CTA Section */}
             <section className="section bg-gradient-to-br from-accent-500 via-secondary-500 to-accent-400">
                 <div className="container-custom text-center">
-                    <h2 className="text-white mb-4">Let's Create Together</h2>
+                    <h2 className="text-white mb-4">Let&apos;s Create Together</h2>
                     <p className="text-white/90 max-w-xl mx-auto mb-8">
                         Interested in commissioning a piece or collaborating on a project?
-                        I'd love to hear from you.
+                        I&apos;d love to hear from you.
                     </p>
                     <Link
                         href="/contact"

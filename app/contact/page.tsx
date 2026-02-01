@@ -111,7 +111,7 @@ export default function ContactPage() {
                         <h1 className="mb-4">Get in Touch</h1>
                         <p className="text-neutral-600 dark:text-neutral-400 text-lg">
                             Have a project in mind, want to commission a piece, or just want
-                            to say hello? I'd love to hear from you!
+                            to say hello? I&apos;d love to hear from you!
                         </p>
                     </div>
                 </div>
@@ -136,7 +136,7 @@ export default function ContactPage() {
                                         Message Sent!
                                     </h3>
                                     <p className="text-green-700 dark:text-green-300">
-                                        Thank you for reaching out. I'll get back to you soon!
+                                        Thank you for reaching out. I&apos;ll get back to you soon!
                                     </p>
                                     <button
                                         onClick={() => setIsSubmitted(false)}
@@ -162,8 +162,8 @@ export default function ContactPage() {
                                             value={formData.name}
                                             onChange={handleChange}
                                             className={`w-full px-4 py-3 rounded-xl border bg-white dark:bg-neutral-900 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${errors.name
-                                                    ? 'border-red-500'
-                                                    : 'border-neutral-200 dark:border-neutral-700'
+                                                ? 'border-red-500'
+                                                : 'border-neutral-200 dark:border-neutral-700'
                                                 }`}
                                             placeholder="Your name"
                                         />
@@ -190,8 +190,8 @@ export default function ContactPage() {
                                             value={formData.email}
                                             onChange={handleChange}
                                             className={`w-full px-4 py-3 rounded-xl border bg-white dark:bg-neutral-900 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${errors.email
-                                                    ? 'border-red-500'
-                                                    : 'border-neutral-200 dark:border-neutral-700'
+                                                ? 'border-red-500'
+                                                : 'border-neutral-200 dark:border-neutral-700'
                                                 }`}
                                             placeholder="your@email.com"
                                         />
@@ -218,8 +218,8 @@ export default function ContactPage() {
                                             value={formData.subject}
                                             onChange={handleChange}
                                             className={`w-full px-4 py-3 rounded-xl border bg-white dark:bg-neutral-900 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${errors.subject
-                                                    ? 'border-red-500'
-                                                    : 'border-neutral-200 dark:border-neutral-700'
+                                                ? 'border-red-500'
+                                                : 'border-neutral-200 dark:border-neutral-700'
                                                 }`}
                                             placeholder="What's this about?"
                                         />
@@ -246,8 +246,8 @@ export default function ContactPage() {
                                             onChange={handleChange}
                                             rows={5}
                                             className={`w-full px-4 py-3 rounded-xl border bg-white dark:bg-neutral-900 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 resize-none ${errors.message
-                                                    ? 'border-red-500'
-                                                    : 'border-neutral-200 dark:border-neutral-700'
+                                                ? 'border-red-500'
+                                                : 'border-neutral-200 dark:border-neutral-700'
                                                 }`}
                                             placeholder="Tell me about your project or idea..."
                                         />

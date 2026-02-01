@@ -26,7 +26,7 @@ export default function PrivacyPage() {
                                 Introduction
                             </h2>
                             <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                                Welcome to Art.Bojeqielli's portfolio website. Your privacy is
+                                Welcome to Art.Bojeqielli&apos;s portfolio website. Your privacy is
                                 important to me. This Privacy Policy explains how I collect,
                                 use, and protect your personal information when you visit this
                                 website.
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
                             </h2>
                             <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed">
                                 If Instagram content is embedded on this website, it uses
-                                Instagram's official embed feature (oEmbed). This may allow
+                                Instagram&apos;s official embed feature (oEmbed). This may allow
                                 Instagram to collect data about your visit according to their
                                 privacy policy. I do not engage in any unauthorized data
                                 scraping from Instagram or other social media platforms.

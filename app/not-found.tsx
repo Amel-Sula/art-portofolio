@@ -18,8 +18,8 @@ export default function NotFound() {
                     </h1>
 
                     <p className="text-neutral-600 dark:text-neutral-400 mb-8">
-                        The page you're looking for seems to have wandered off into the
-                        creative ether. Let's get you back on track.
+                        The page you&apos;re looking for seems to have wandered off into the
+                        creative ether. Let&apos;s get you back on track.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
