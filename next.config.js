@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    output: 'export',
     images: {
+        unoptimized: true,
         // Configure image optimization
         formats: ['image/avif', 'image/webp'],
         // Add remote patterns if you need to load images from external sources
