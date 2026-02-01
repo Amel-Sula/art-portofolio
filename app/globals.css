@@ -1,0 +1,238 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================
+   CSS Variables for Theming
+   ========================================= */
+:root {
+  /* Light mode colors */
+  --background: 250 250 250;
+  --foreground: 23 23 23;
+  --card: 255 255 255;
+  --card-foreground: 23 23 23;
+  --muted: 245 245 245;
+  --muted-foreground: 115 115 115;
+  --border: 229 229 229;
+  --accent-primary: 244 63 94;
+  --accent-secondary: 168 85 247;
+}
+
+.dark {
+  /* Dark mode colors */
+  --background: 10 10 10;
+  --foreground: 250 250 250;
+  --card: 23 23 23;
+  --card-foreground: 250 250 250;
+  --muted: 38 38 38;
+  --muted-foreground: 163 163 163;
+  --border: 64 64 64;
+  --accent-primary: 251 113 133;
+  --accent-secondary: 192 132 252;
+}
+
+/* =========================================
+   Base Styles
+   ========================================= */
+@layer base {
+  * {
+    @apply border-neutral-200 dark:border-neutral-700;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50;
+    @apply font-sans antialiased;
+    @apply transition-colors duration-300;
+  }
+
+  /* Typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl;
+  }
+
+  p {
+    @apply leading-relaxed;
+  }
+
+  a {
+    @apply transition-colors duration-200;
+  }
+
+  /* Focus states for accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent-500;
+  }
+}
+
+/* =========================================
+   Component Styles
+   ========================================= */
+@layer components {
+  /* Button styles */
+  .btn {
+    @apply inline-flex items-center justify-center;
+    @apply px-6 py-3 rounded-lg;
+    @apply font-medium text-sm;
+    @apply transition-all duration-200;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-accent-500 to-secondary-500;
+    @apply text-white;
+    @apply hover:from-accent-600 hover:to-secondary-600;
+    @apply shadow-soft hover:shadow-soft-lg;
+    @apply hover:-translate-y-0.5;
+  }
+
+  .btn-secondary {
+    @apply bg-neutral-100 dark:bg-neutral-800;
+    @apply text-neutral-900 dark:text-neutral-100;
+    @apply hover:bg-neutral-200 dark:hover:bg-neutral-700;
+    @apply border border-neutral-200 dark:border-neutral-700;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent;
+    @apply text-neutral-700 dark:text-neutral-300;
+    @apply hover:bg-neutral-100 dark:hover:bg-neutral-800;
+  }
+
+  /* Card styles */
+  .card {
+    @apply bg-white dark:bg-neutral-900;
+    @apply rounded-xl;
+    @apply border border-neutral-200 dark:border-neutral-800;
+    @apply shadow-soft;
+    @apply transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:shadow-soft-lg hover:-translate-y-1;
+  }
+
+  /* Container utilities */
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Section spacing */
+  .section {
+    @apply py-16 md:py-24 lg:py-32;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent-500 via-secondary-500 to-accent-400;
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply animate-pulse bg-neutral-200 dark:bg-neutral-800 rounded;
+  }
+}
+
+/* =========================================
+   Custom Utilities
+   ========================================= */
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/70 dark:bg-neutral-900/70;
+    @apply backdrop-blur-lg;
+    @apply border border-white/20 dark:border-neutral-700/30;
+  }
+
+  /* Subtle gradient backgrounds */
+  .bg-gradient-subtle {
+    background: linear-gradient(
+      135deg,
+      rgba(253, 164, 175, 0.05) 0%,
+      rgba(192, 132, 252, 0.05) 50%,
+      rgba(129, 140, 248, 0.05) 100%
+    );
+  }
+
+  .dark .bg-gradient-subtle {
+    background: linear-gradient(
+      135deg,
+      rgba(253, 164, 175, 0.03) 0%,
+      rgba(192, 132, 252, 0.03) 50%,
+      rgba(129, 140, 248, 0.03) 100%
+    );
+  }
+
+  /* Animation delays */
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+  .animation-delay-500 {
+    animation-delay: 500ms;
+  }
+}
+
+/* =========================================
+   Masonry Grid Layout
+   ========================================= */
+.masonry-grid {
+  column-count: 2;
+  column-gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .masonry-grid {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 1280px) {
+  .masonry-grid {
+    column-count: 4;
+  }
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+}
