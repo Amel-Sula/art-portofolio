@@ -85,18 +85,12 @@ export function ThemeProvider({
         setThemeState(newTheme)
     }
 
-    // Prevent flash of wrong theme
-    if (!mounted) {
-        return (
-            <div style={{ visibility: 'hidden' }}>
-                {children}
-            </div>
-        )
-    }
-
     return (
         <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
-            {children}
+            {/* Prevent flash of wrong theme by hiding content until mounted */}
+            <div style={{ visibility: mounted ? 'visible' : 'hidden' }}>
+                {children}
+            </div>
         </ThemeContext.Provider>
     )
 }
