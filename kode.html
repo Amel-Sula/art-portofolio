@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="sq">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Kodet e Dhuratave</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Karla:wght@400;600&display=swap">
+<style>
+/* Layout: one narrow column Sara uses next to Instagram: big "new code" button, then the ready-to-paste message. */
+:root {
+  --bg: #efe9e2;
+  --card: #fbf8f4;
+  --fg: #2c2620;
+  --muted: #7a6e63;
+  --accent: #a0714f;
+  --line: #e2d8cd;
+  --ok: #4f7a52;
+  --bad: #a2463b;
+  --display: "Fraunces", Georgia, serif;
+  --body: "Karla", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1d1916; --card: #282320; --fg: #f1ebe4; --muted: #b3a597; --accent: #d3a07a; --line: #3d3530; --ok: #8fc192; --bad: #e08a7f; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body);
+  padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+}
+main { max-width: 420px; margin: 0 auto; display: grid; gap: 16px; }
+h1 { font-family: var(--display); font-weight: 600; font-size: 1.7rem; margin: 0; }
+.sub { margin: 0; color: var(--muted); line-height: 1.5; }
+.card { background: var(--card); border-radius: 18px; padding: 20px; display: grid; gap: 12px; }
+label { font-size: .85rem; font-weight: 600; }
+input, textarea {
+  font: 1rem var(--body); color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px; width: 100%;
+}
+textarea { min-height: 120px; resize: vertical; line-height: 1.45; }
+button {
+  font: 600 1rem var(--body); border: 0; border-radius: 999px; padding: 14px 24px;
+  background: var(--accent); color: var(--card); cursor: pointer;
+}
+button.secondary { background: none; color: var(--accent); border: 1px solid var(--line); }
+button:disabled { opacity: .6; cursor: default; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.big { font-size: 1.15rem; padding: 18px; }
+.code { font-family: var(--display); font-size: 2rem; letter-spacing: .12em; text-align: center; margin: 0; }
+.status { font-size: .9rem; margin: 0; min-height: 1.3em; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--bad); }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1.2rem; margin: 0; }
+.row { display: flex; gap: 8px; }
+.row input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: .1em; }
+.verdict { border-radius: 12px; padding: 12px; display: grid; gap: 6px; background: var(--bg); }
+.verdict strong { font-size: 1.05rem; }
+.list { display: grid; gap: 0; max-height: 320px; overflow-y: auto; }
+.item { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.item .k { font-weight: 600; letter-spacing: .08em; }
+.pill { font-size: .75rem; border-radius: 999px; padding: 2px 8px; white-space: nowrap; align-self: center; }
+.pill.given { background: var(--ok); color: var(--card); }
+.pill.open { border: 1px solid var(--line); color: var(--muted); }
+.sheet-link { color: var(--accent); text-align: center; padding: 8px; font-weight: 600; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Kodet e dhuratave</h1>
+  <p class="sub">Për çdo porosi: shtyp “Kod i ri”, kopjo mesazhin dhe ngjite në DM të klientes. Kur të dërgon screenshot-in, kontrolloje kodin më poshtë.</p>
+
+  <button id="new" class="big">Kod i ri</button>
+  <p class="status" id="status" role="status"></p>
+
+  <section class="card" id="result" hidden>
+    <p class="code" id="code"></p>
+    <label for="msg">Mesazhi për DM</label>
+    <textarea id="msg"></textarea>
+    <button id="copy">Kopjo mesazhin</button>
+  </section>
+
+  <section class="card">
+    <h2>Kontrollo një kod</h2>
+    <label for="checkInput">Kodi nga screenshot-i</label>
+    <div class="row">
+      <input id="checkInput" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="P.sh. AB12CD">
+      <button id="checkBtn">Kontrollo</button>
+    </div>
+    <div class="verdict" id="verdict" hidden>
+      <strong id="vTitle"></strong>
+      <span id="vText"></span>
+      <button id="giveBtn" hidden>Shëno: dhurata u dha</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Të gjitha kodet (<span id="count">0</span>)</h2>
+    <div class="list" id="list"></div>
+    <p class="sub" style="font-size:.8rem">Lista ruhet vetëm në këtë telefon dhe në këtë shfletues. Mos i fshi të dhënat e Chrome.</p>
+  </section>
+</main>
+
+<script src="prizes.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const GAME_URL = new URL("./", location.href).href;
+
+// Saved codes: [{ kod, created, given }]
+function load() {
+  try { return JSON.parse(localStorage.getItem("codes") || "[]"); } catch (_) { return []; }
+}
+function save(codes) {
+  try { localStorage.setItem("codes", JSON.stringify(codes)); return true; } catch (_) { return false; }
+}
+
+function status(text, kind) {
+  $("status").textContent = text;
+  $("status").className = "status" + (kind ? " " + kind : "");
+}
+
+const fmt = t => new Date(t).toLocaleDateString("sq-AL", { day: "numeric", month: "short" });
+
+function render() {
+  const codes = load();
+  $("count").textContent = codes.length;
+  $("list").replaceChildren(...codes.slice().reverse().map(c => {
+    const row = document.createElement("div");
+    row.className = "item";
+    const left = document.createElement("span");
+    left.innerHTML = '<span class="k"></span> · <span class="d"></span>';
+    left.querySelector(".k").textContent = c.kod;
+    left.querySelector(".d").textContent = fmt(c.created) + " · " + prizeFor(c.kod).name;
+    const pill = document.createElement("span");
+    pill.className = "pill " + (c.given ? "given" : "open");
+    pill.textContent = c.given ? "U dha" : "Pa dhënë";
+    row.append(left, pill);
+    return row;
+  }));
+}
+
+$("new").addEventListener("click", () => {
+  const codes = load();
+  let kod;
+  do { kod = newCode(); } while (codes.some(c => c.kod === kod));
+  codes.push({ kod, created: Date.now(), given: false });
+  if (!save(codes)) return status("Kodi nuk u ruajt dot. Mos e përdor faqen në Incognito.", "bad");
+  $("code").textContent = kod;
+  $("msg").value = "Faleminderit për porosinë! 🎁 Hape këtë link në telefon dhe shkunde telefonin për të fituar një dhuratë: " + GAME_URL + "?kod=" + kod;
+  $("result").hidden = false;
+  status("Kodi u krijua. Kopjo mesazhin dhe dërgoje në DM.", "ok");
+  render();
+});
+
+$("copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("msg").value);
+    status("U kopjua! Tani ngjite në DM.", "ok");
+  } catch (_) {
+    $("msg").focus();
+    $("msg").select();
+    status("Mbaje gishtin te mesazhi dhe zgjidh “Kopjo”.", "bad");
+  }
+});
+
+let checking = null;
+function check() {
+  const kod = cleanCode($("checkInput").value);
+  const c = load().find(x => x.kod === kod);
+  checking = c ? kod : null;
+  $("verdict").hidden = false;
+  $("giveBtn").hidden = true;
+  if (!kod) {
+    $("vTitle").textContent = "Shkruaj kodin";
+    $("vText").textContent = "";
+  } else if (!c) {
+    $("vTitle").textContent = "❌ Ky kod nuk është në listën tënde";
+    $("vText").textContent = "Nuk e ke krijuar ti këtë kod, ose është shkruar gabim. Mos jep dhuratë.";
+  } else if (c.given) {
+    $("vTitle").textContent = "⚠️ Dhurata për këtë kod është dhënë tashmë";
+    $("vText").textContent = "Dhurata: " + prizeFor(kod).name + ". Mos e jep dy herë.";
+  } else {
+    $("vTitle").textContent = "✅ Kod i vërtetë: " + prizeFor(kod).name;
+    $("vText").textContent = prizeFor(kod).detail + ". Kontrollo që screenshot-i tregon të njëjtën dhuratë.";
+    $("giveBtn").hidden = false;
+  }
+}
+$("checkBtn").addEventListener("click", check);
+$("checkInput").addEventListener("keydown", e => { if (e.key === "Enter") check(); });
+
+$("giveBtn").addEventListener("click", () => {
+  const codes = load();
+  const c = codes.find(x => x.kod === checking);
+  if (!c) return;
+  c.given = true;
+  save(codes);
+  render();
+  check();
+});
+
+render();
+</script>
+</body>
+</html>

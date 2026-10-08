@@ -50,33 +50,42 @@ button {
   font: 600 1rem var(--body); border: 0; border-radius: 999px; padding: 14px 28px;
   background: var(--accent); color: var(--card); cursor: pointer;
 }
-button:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+.button { display: inline-block; text-decoration: none; font: 600 1rem var(--body); border-radius: 999px; padding: 14px 28px; background: var(--accent); color: var(--card); }
+button:focus-visible, .button:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
 .link { background: none; color: var(--muted); padding: 6px; font-weight: 400; text-decoration: underline; font-size: .9rem; }
 .prize-line { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
 .prize { font-family: var(--display); font-size: 1.6rem; line-height: 1.2; margin: 0; text-wrap: balance; }
 .reveal { animation: pop .5s cubic-bezier(.2, 1.4, .4, 1); }
 @keyframes pop { from { transform: scale(.6); opacity: 0 } to { transform: scale(1); opacity: 1 } }
 .note { font-size: .8rem; }
+.code { font-size: .9rem; color: var(--fg); letter-spacing: .08em; }
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .shaking .gift, .reveal { animation: none; } }
 </style>
 </head>
 <body>
 <main class="card">
-  <span class="tag">Shembull · Dhuratë · v5</span>
+  <span class="tag">@zemerpako · Dhuratë</span>
+
+  <!-- Missing, wrong or broken link -->
+  <section id="msg" style="display:grid;gap:18px;justify-items:center">
+    <div class="gift" style="position:static;font-size:64px" aria-hidden="true">🔒</div>
+    <h1 id="msgTitle"></h1>
+    <p id="msgText"></p>
+  </section>
 
   <!-- 1. Start -->
-  <section id="start" style="display:grid;gap:18px;justify-items:center">
+  <section id="start" hidden style="display:grid;gap:18px;justify-items:center">
     <div class="gift" style="position:static;font-size:64px" aria-hidden="true">🎁</div>
     <h1>Shkunde telefonin dhe fito</h1>
-    <p>Shtyp butonin, pastaj shkunde telefonin fort për të zbuluar dhuratën tënde nga Rituals.</p>
+    <p>Shtyp butonin, pastaj shkunde telefonin fort për të zbuluar dhuratën tënde. Ky link funksionon vetëm një herë.</p>
     <button id="go">Fillo</button>
     <p id="err" class="note" hidden></p>
   </section>
 
   <!-- 2. Shaking -->
   <section id="shake" hidden style="display:grid;gap:18px;justify-items:center">
-    <h1>Shkunde! Shkunde!</h1>
+    <h1 id="shakeTitle">Shkunde! Shkunde!</h1>
     <div class="meter" id="meter">
       <svg viewBox="0 0 170 170" aria-hidden="true">
         <circle class="track" cx="85" cy="85" r="75"></circle>
@@ -85,39 +94,57 @@ button:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
       <div class="gift" aria-hidden="true">🎁</div>
     </div>
     <p id="hint">Vazhdo të shkundësh derisa rrethi të mbushet.</p>
-    <button id="tap" class="link" hidden>S'ke telefon? Provo me prekje</button>
   </section>
 
   <!-- 3. Prize -->
   <section id="won" hidden style="display:grid;gap:14px;justify-items:center">
     <div style="font-size:64px" aria-hidden="true">✨</div>
-    <span class="prize-line">Urime! Fitove</span>
+    <span class="prize-line" id="wonLine">Urime! Fitove</span>
     <h2 class="prize reveal" id="prize"></h2>
     <p id="detail"></p>
-    <p class="note">Tregoje këtë ekran në dyqan për të marrë dhuratën.</p>
-    <button id="again" class="link">Provo sërish (vetëm për shembullin)</button>
+    <p class="code">Kodi: <strong id="codeShown"></strong></p>
+    <p class="note">Bëj një screenshot të këtij ekrani dhe dërgoja <strong>@zemerpako</strong> në Instagram për të marrë dhuratën.</p>
+    <a class="button" href="https://ig.me/m/zemerpako" target="_blank" rel="noopener">Dërgoja @zemerpako</a>
   </section>
 </main>
 
+<script src="prizes.js"></script>
 <script>
-// Every prize has the same chance: 1 in PRIZES.length.
-const PRIZES = [
-  { name: "The Ritual of Sakura", detail: "Shkumë dushi me lule qershie dhe qumësht orizi" },
-  { name: "The Ritual of Karma", detail: "Krem trupi me lule zambaku dhe çaj të bardhë" },
-  { name: "The Ritual of Ayurveda", detail: "Shkopinj aromatikë për shtëpinë" },
-  { name: "The Ritual of Jing", detail: "Spërkatës për jastëkun, për një gjumë të qetë" },
-  { name: "The Ritual of Hammam", detail: "Pastrues trupi me eukalipt dhe rozmarinë" },
-  { name: "The Ritual of Mehr", detail: "Qiri aromatik me portokall të ëmbël" },
-  { name: "Zbritje 15%", detail: "Në blerjen tënde të radhës" },
-  { name: "Mostër parfumi", detail: "Një mostër falas nga koleksioni i parfumeve" },
-];
-
 const $ = id => document.getElementById(id);
-const show = id => ["start", "shake", "won"].forEach(s => $(s).hidden = s !== id);
+const SECTIONS = ["msg", "start", "shake", "won"];
+const show = id => SECTIONS.forEach(s => $(s).hidden = s !== id);
+
+const KOD = cleanCode(new URLSearchParams(location.search).get("kod"));
 
 const GOAL = 160;          // shaking needed to fill the ring: about 10 s of strong shaking; harder fills faster, softer slower
 const THRESHOLD = 4;       // m/s² of movement (gravity removed) that counts as shaking
 let energy = 0, last = null, gotEvent = false, done = false, buzzAt = 0;
+
+function message(title, text) {
+  $("msgTitle").textContent = title;
+  $("msgText").textContent = text;
+  show("msg");
+}
+
+function showPrize(already) {
+  const prize = prizeFor(KOD);
+  $("wonLine").textContent = already ? "Ke luajtur tashmë. Dhurata jote:" : "Urime! Fitove";
+  $("prize").textContent = prize.name;
+  $("detail").textContent = prize.detail;
+  $("codeShown").textContent = KOD;
+  show("won");
+}
+
+function playedHere() {
+  try { return localStorage.getItem("played:" + KOD) === "1"; } catch (_) { return false; }
+}
+
+function checkCode() {
+  if (!KOD) return message("Mungon kodi", "Ky link nuk ka kod. Përdor linkun që të dërgoi @zemerpako në DM.");
+  if (!isCodeShape(KOD)) return message("Kod i pavlefshëm", "Ky kod nuk është i saktë. Kontrollo linkun që të dërgoi @zemerpako në DM.");
+  if (playedHere()) return showPrize(true);
+  show("start");
+}
 
 function setFill() {
   $("fill").style.strokeDashoffset = 471 * (1 - Math.min(energy, GOAL) / GOAL);
@@ -154,11 +181,9 @@ function win() {
   if (done) return;
   done = true;
   window.removeEventListener("devicemotion", onMotion);
-  const p = PRIZES[Math.floor(Math.random() * PRIZES.length)];
-  $("prize").textContent = p.name;
-  $("detail").textContent = p.detail;
+  try { localStorage.setItem("played:" + KOD, "1"); } catch (_) {}
   if (navigator.vibrate) navigator.vibrate([80, 60, 160]);
-  show("won");
+  showPrize(false);
 }
 
 async function start() {
@@ -174,9 +199,9 @@ async function start() {
     } catch (_) { /* fall through and try anyway */ }
   }
   energy = 0; last = null; done = false; gotEvent = false; setFill();
+  $("shakeTitle").textContent = "Shkunde! Shkunde!";
   show("shake");
   window.addEventListener("devicemotion", onMotion);
-  // No sensor data (e.g. a computer): offer a tap fallback so the page can still be tested.
   setTimeout(() => {
     if (!gotEvent && !done) {
       $("hint").textContent = !window.isSecureContext
@@ -184,16 +209,13 @@ async function start() {
         ? "Kjo faqe është hapur si skedar. Telefoni e lejon shkundjen vetëm kur faqja hapet si link interneti (https://…)."
         : /Android/i.test(navigator.userAgent)
           ? "Sensori i lëvizjes është i bllokuar. Në Chrome: ⋮ → Cilësimet → Cilësimet e sajtit → Sensorët e lëvizjes → Lejo. Pastaj rifresko faqen."
-          : "Telefoni nuk po dërgon lëvizjen. Hape linkun në Chrome ose Safari dhe provo sërish.";
-      $("tap").hidden = false;
+          : "Hape këtë link në telefon dhe shkunde. Në kompjuter nuk funksionon.";
     }
   }, 1500);
 }
 
 $("go").addEventListener("click", start);
-$("tap").addEventListener("click", () => { energy += GOAL / 4; setFill(); if (energy >= GOAL) win(); });
-$("again").addEventListener("click", () => show("start"));
-show("start");
+checkCode();
 </script>
 </body>
 </html>
