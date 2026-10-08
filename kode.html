@@ -53,6 +53,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .status { font-size: .9rem; margin: 0; min-height: 1.3em; }
 .status.ok { color: var(--ok); }
 .status.bad { color: var(--bad); }
+.sheet-link { color: var(--accent); text-align: center; padding: 8px; font-weight: 600; }
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -64,7 +65,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   <section class="card" id="keyCard">
     <label for="key">Fjalëkalimi</label>
     <input id="key" type="password" autocomplete="current-password" placeholder="Fjalëkalimi i administratorit">
-    <p class="sub" style="font-size:.85rem">Ruhet vetëm në këtë telefon.</p>
+    <p class="sub" style="font-size:.85rem">Herën e parë, fjalëkalimi që shkruan këtu bëhet fjalëkalimi yt (të paktën 4 shkronja). Ruhet vetëm në këtë telefon.</p>
   </section>
 
   <button id="new" class="big">Kod i ri</button>
@@ -76,6 +77,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     <textarea id="msg"></textarea>
     <button id="copy">Kopjo mesazhin</button>
   </section>
+
+  <a id="sheet" class="sheet-link" href="#" target="_blank" rel="noopener" hidden>Hap listën e kodeve (Google Sheet)</a>
 </main>
 
 <script src="config.js"></script>
@@ -88,7 +91,11 @@ function status(text, kind) {
   $("status").className = "status" + (kind ? " " + kind : "");
 }
 
-try { $("key").value = localStorage.getItem("adminKey") || ""; } catch (_) {}
+try {
+  $("key").value = localStorage.getItem("adminKey") || "";
+  const sheetUrl = localStorage.getItem("sheetUrl");
+  if (sheetUrl) { $("sheet").href = sheetUrl; $("sheet").hidden = false; }
+} catch (_) {}
 $("key").addEventListener("change", () => {
   try { localStorage.setItem("adminKey", $("key").value); } catch (_) {}
 });
@@ -104,11 +111,17 @@ $("new").addEventListener("click", async () => {
     const res = await fetch(window.API_URL + "?" + new URLSearchParams({ action: "new", key }));
     const r = await res.json();
     if (r.error === "wrong_key") return status("Fjalëkalimi është gabim.", "bad");
+    if (r.error === "short_key") return status("Fjalëkalimi duhet të ketë të paktën 4 shkronja.", "bad");
     if (!r.kod) throw new Error(r.error || "unknown");
     const link = GAME_URL + "?kod=" + r.kod;
     $("code").textContent = r.kod;
     $("msg").value = "Faleminderit për porosinë! 🎁 Hape këtë link në telefon dhe shkunde telefonin për të fituar një dhuratë: " + link;
     $("result").hidden = false;
+    if (r.sheetUrl) {
+      $("sheet").href = r.sheetUrl;
+      $("sheet").hidden = false;
+      try { localStorage.setItem("sheetUrl", r.sheetUrl); } catch (_) {}
+    }
     status("Kodi u krijua. Kopjo mesazhin dhe dërgoje në DM.", "ok");
   } catch (_) {
     status("Nuk u lidhëm dot. Kontrollo internetin dhe provo sërish.", "bad");

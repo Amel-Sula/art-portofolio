@@ -1,9 +1,10 @@
 // Backend for the Zemerpako shake-to-win page.
-// It lives in a Google Sheet (Extensions → Apps Script) and keeps one row per code:
+// A standalone Apps Script (script.google.com) deployed as a web app. On first use it creates
+// a Google Sheet called "Zemerpako Dhurata" in the owner's Drive, with one row per code:
 //   Kodi | Krijuar | Statusi | Dhurata | Luajtur më
 //
-// The admin key is NOT written here (this file is public on GitHub).
-// Set it in Apps Script: Project Settings → Script Properties → ADMIN_KEY.
+// The admin password is NOT written here (this file is public on GitHub). The first password
+// typed on kode.html becomes the password and is kept in Script Properties as ADMIN_KEY.
 
 // Every prize has the same chance.
 const PRIZES = [
@@ -38,8 +39,17 @@ function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
 
+function spreadsheet() {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty("SHEET_ID");
+  if (id) return SpreadsheetApp.openById(id);
+  const ss = SpreadsheetApp.create("Zemerpako Dhurata");
+  props.setProperty("SHEET_ID", ss.getId());
+  return ss;
+}
+
 function sheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = spreadsheet();
   let sh = ss.getSheetByName(SHEET_NAME);
   if (!sh) {
     sh = ss.insertSheet(SHEET_NAME);
@@ -69,11 +79,19 @@ function clean(kod) {
 }
 
 function newCode(key) {
-  const adminKey = PropertiesService.getScriptProperties().getProperty("ADMIN_KEY");
-  if (!adminKey || key !== adminKey) return { error: "wrong_key" };
+  key = String(key || "");
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
+    const props = PropertiesService.getScriptProperties();
+    const adminKey = props.getProperty("ADMIN_KEY");
+    if (!adminKey) {
+      // First use: the first password typed becomes the password.
+      if (key.length < 4) return { error: "short_key" };
+      props.setProperty("ADMIN_KEY", key);
+    } else if (key !== adminKey) {
+      return { error: "wrong_key" };
+    }
     const sh = sheet();
     let kod;
     do {
@@ -81,7 +99,7 @@ function newCode(key) {
       for (let i = 0; i < 6; i++) kod += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
     } while (findCode(sh, kod));
     sh.appendRow([kod, new Date(), UNUSED, "", ""]);
-    return { kod };
+    return { kod, sheetUrl: sh.getParent().getUrl() };
   } finally {
     lock.releaseLock();
   }
