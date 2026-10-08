@@ -115,31 +115,40 @@ const PRIZES = [
 const $ = id => document.getElementById(id);
 const show = id => ["start", "shake", "won"].forEach(s => $(s).hidden = s !== id);
 
-const GOAL = 100;          // how much shaking fills the ring
-const THRESHOLD = 14;      // m/s² change that counts as a shake
-let energy = 0, last = null, gotEvent = false, done = false;
+const GOAL = 100;          // how much shaking fills the ring (about 2 seconds of good shaking)
+const THRESHOLD = 4;       // m/s² of movement (gravity removed) that counts as shaking
+const RATE = 14;           // fill speed per m/s² above the threshold, per second
+let energy = 0, last = null, gotEvent = false, done = false, buzzAt = 0;
 
 function setFill() {
   $("fill").style.strokeDashoffset = 471 * (1 - Math.min(energy, GOAL) / GOAL);
 }
 
+// How hard the phone is moving right now, with gravity taken out.
+function movement(e) {
+  const a = e.acceleration;
+  if (a && a.x != null) return Math.hypot(a.x, a.y, a.z);
+  const g = e.accelerationIncludingGravity;
+  if (g && g.x != null) return Math.abs(Math.hypot(g.x, g.y, g.z) - 9.81);
+  return null;
+}
+
 function onMotion(e) {
-  const a = e.accelerationIncludingGravity;
-  if (!a || a.x == null) return;
+  const m = movement(e);
+  if (m == null) return;
   gotEvent = true;
-  if (last) {
-    const delta = Math.abs(a.x - last.x) + Math.abs(a.y - last.y) + Math.abs(a.z - last.z);
-    if (delta > THRESHOLD) {
-      energy += delta / 6;
-      $("meter").classList.add("shaking");
-      clearTimeout(onMotion.t);
-      onMotion.t = setTimeout(() => $("meter").classList.remove("shaking"), 250);
-      if (navigator.vibrate) navigator.vibrate(15);
-      setFill();
-      if (energy >= GOAL) win();
-    }
+  const now = performance.now();
+  const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
+  last = now;
+  if (m > THRESHOLD && dt > 0) {
+    energy += (m - THRESHOLD) * RATE * dt;
+    $("meter").classList.add("shaking");
+    clearTimeout(onMotion.t);
+    onMotion.t = setTimeout(() => $("meter").classList.remove("shaking"), 250);
+    if (navigator.vibrate && now - buzzAt > 120) { navigator.vibrate(15); buzzAt = now; }
+    setFill();
+    if (energy >= GOAL) win();
   }
-  last = { x: a.x, y: a.y, z: a.z };
 }
 
 function win() {
@@ -171,7 +180,7 @@ async function start() {
   // No sensor data (e.g. a computer): offer a tap fallback so the page can still be tested.
   setTimeout(() => {
     if (!gotEvent && !done) {
-      $("hint").textContent = "Ky link funksionon me telefon. Hape në celular dhe shkunde.";
+      $("hint").textContent = "Telefoni nuk po dërgon lëvizjen. Hape linkun (https) në Chrome ose Safari, jo si skedar, dhe provo sërish.";
       $("tap").hidden = false;
     }
   }, 1500);
