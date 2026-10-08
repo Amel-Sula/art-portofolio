@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="sq">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Kodet e Dhuratave</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Karla:wght@400;600&display=swap">
+<style>
+/* Layout: one narrow column Sara uses next to Instagram: big "new code" button, then the ready-to-paste message. */
+:root {
+  --bg: #efe9e2;
+  --card: #fbf8f4;
+  --fg: #2c2620;
+  --muted: #7a6e63;
+  --accent: #a0714f;
+  --line: #e2d8cd;
+  --ok: #4f7a52;
+  --bad: #a2463b;
+  --display: "Fraunces", Georgia, serif;
+  --body: "Karla", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1d1916; --card: #282320; --fg: #f1ebe4; --muted: #b3a597; --accent: #d3a07a; --line: #3d3530; --ok: #8fc192; --bad: #e08a7f; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body);
+  padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+}
+main { max-width: 420px; margin: 0 auto; display: grid; gap: 16px; }
+h1 { font-family: var(--display); font-weight: 600; font-size: 1.7rem; margin: 0; }
+.sub { margin: 0; color: var(--muted); line-height: 1.5; }
+.card { background: var(--card); border-radius: 18px; padding: 20px; display: grid; gap: 12px; }
+label { font-size: .85rem; font-weight: 600; }
+input, textarea {
+  font: 1rem var(--body); color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px; width: 100%;
+}
+textarea { min-height: 120px; resize: vertical; line-height: 1.45; }
+button {
+  font: 600 1rem var(--body); border: 0; border-radius: 999px; padding: 14px 24px;
+  background: var(--accent); color: var(--card); cursor: pointer;
+}
+button.secondary { background: none; color: var(--accent); border: 1px solid var(--line); }
+button:disabled { opacity: .6; cursor: default; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.big { font-size: 1.15rem; padding: 18px; }
+.code { font-family: var(--display); font-size: 2rem; letter-spacing: .12em; text-align: center; margin: 0; }
+.status { font-size: .9rem; margin: 0; min-height: 1.3em; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--bad); }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Kodet e dhuratave</h1>
+  <p class="sub">Për çdo porosi, shtyp “Kod i ri”, pastaj ngjite mesazhin në DM të klientes. Çdo link funksionon vetëm një herë.</p>
+
+  <section class="card" id="keyCard">
+    <label for="key">Fjalëkalimi</label>
+    <input id="key" type="password" autocomplete="current-password" placeholder="Fjalëkalimi i administratorit">
+    <p class="sub" style="font-size:.85rem">Ruhet vetëm në këtë telefon.</p>
+  </section>
+
+  <button id="new" class="big">Kod i ri</button>
+  <p class="status" id="status" role="status"></p>
+
+  <section class="card" id="result" hidden>
+    <p class="code" id="code"></p>
+    <label for="msg">Mesazhi për DM</label>
+    <textarea id="msg"></textarea>
+    <button id="copy">Kopjo mesazhin</button>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const GAME_URL = new URL("./", location.href).href;
+
+function status(text, kind) {
+  $("status").textContent = text;
+  $("status").className = "status" + (kind ? " " + kind : "");
+}
+
+try { $("key").value = localStorage.getItem("adminKey") || ""; } catch (_) {}
+$("key").addEventListener("change", () => {
+  try { localStorage.setItem("adminKey", $("key").value); } catch (_) {}
+});
+
+$("new").addEventListener("click", async () => {
+  if (!window.API_URL) return status("Lidhja me Google Sheet nuk është vendosur ende (config.js).", "bad");
+  const key = $("key").value.trim();
+  if (!key) return status("Shkruaj fjalëkalimin më parë.", "bad");
+  try { localStorage.setItem("adminKey", key); } catch (_) {}
+  $("new").disabled = true;
+  status("Duke krijuar kodin…");
+  try {
+    const res = await fetch(window.API_URL + "?" + new URLSearchParams({ action: "new", key }));
+    const r = await res.json();
+    if (r.error === "wrong_key") return status("Fjalëkalimi është gabim.", "bad");
+    if (!r.kod) throw new Error(r.error || "unknown");
+    const link = GAME_URL + "?kod=" + r.kod;
+    $("code").textContent = r.kod;
+    $("msg").value = "Faleminderit për porosinë! 🎁 Hape këtë link në telefon dhe shkunde telefonin për të fituar një dhuratë: " + link;
+    $("result").hidden = false;
+    status("Kodi u krijua. Kopjo mesazhin dhe dërgoje në DM.", "ok");
+  } catch (_) {
+    status("Nuk u lidhëm dot. Kontrollo internetin dhe provo sërish.", "bad");
+  } finally {
+    $("new").disabled = false;
+  }
+});
+
+$("copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("msg").value);
+    status("U kopjua! Tani ngjite në DM.", "ok");
+  } catch (_) {
+    $("msg").focus();
+    $("msg").select();
+    status("Mbaje gishtin te mesazhi dhe zgjidh “Kopjo”.", "bad");
+  }
+});
+</script>
+</body>
+</html>
