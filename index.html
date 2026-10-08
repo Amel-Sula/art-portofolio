@@ -50,7 +50,8 @@ button {
   font: 600 1rem var(--body); border: 0; border-radius: 999px; padding: 14px 28px;
   background: var(--accent); color: var(--card); cursor: pointer;
 }
-button:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+.button { display: inline-block; text-decoration: none; font: 600 1rem var(--body); border-radius: 999px; padding: 14px 28px; background: var(--accent); color: var(--card); }
+button:focus-visible, .button:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
 .link { background: none; color: var(--muted); padding: 6px; font-weight: 400; text-decoration: underline; font-size: .9rem; }
 .prize-line { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
 .prize { font-family: var(--display); font-size: 1.6rem; line-height: 1.2; margin: 0; text-wrap: balance; }
@@ -66,18 +67,11 @@ button:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
 <main class="card">
   <span class="tag">@zemerpako · Dhuratë</span>
 
-  <!-- Waiting for the code check -->
-  <section id="loading" style="display:grid;gap:18px;justify-items:center">
-    <div class="gift" style="position:static;font-size:64px" aria-hidden="true">🎁</div>
-    <p>Duke kontrolluar linkun…</p>
-  </section>
-
   <!-- Missing, wrong or broken link -->
-  <section id="msg" hidden style="display:grid;gap:18px;justify-items:center">
+  <section id="msg" style="display:grid;gap:18px;justify-items:center">
     <div class="gift" style="position:static;font-size:64px" aria-hidden="true">🔒</div>
     <h1 id="msgTitle"></h1>
     <p id="msgText"></p>
-    <button id="retry" hidden>Provo sërish</button>
   </section>
 
   <!-- 1. Start -->
@@ -110,56 +104,46 @@ button:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
     <p id="detail"></p>
     <p class="code">Kodi: <strong id="codeShown"></strong></p>
     <p class="note">Bëj një screenshot të këtij ekrani dhe dërgoja <strong>@zemerpako</strong> në Instagram për të marrë dhuratën.</p>
+    <a class="button" href="https://ig.me/m/zemerpako" target="_blank" rel="noopener">Dërgoja @zemerpako</a>
   </section>
 </main>
 
-<script src="config.js"></script>
+<script src="prizes.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const SECTIONS = ["loading", "msg", "start", "shake", "won"];
+const SECTIONS = ["msg", "start", "shake", "won"];
 const show = id => SECTIONS.forEach(s => $(s).hidden = s !== id);
 
-const KOD = (new URLSearchParams(location.search).get("kod") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+const KOD = cleanCode(new URLSearchParams(location.search).get("kod"));
 
 const GOAL = 160;          // shaking needed to fill the ring: about 10 s of strong shaking; harder fills faster, softer slower
 const THRESHOLD = 4;       // m/s² of movement (gravity removed) that counts as shaking
 let energy = 0, last = null, gotEvent = false, done = false, buzzAt = 0;
 
-async function api(params) {
-  const url = window.API_URL + "?" + new URLSearchParams(params);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return res.json();
-}
-
-function message(title, text, canRetry) {
+function message(title, text) {
   $("msgTitle").textContent = title;
   $("msgText").textContent = text;
-  $("retry").hidden = !canRetry;
   show("msg");
 }
 
-function showPrize(prize, already) {
+function showPrize(already) {
+  const prize = prizeFor(KOD);
   $("wonLine").textContent = already ? "Ke luajtur tashmë. Dhurata jote:" : "Urime! Fitove";
   $("prize").textContent = prize.name;
-  $("detail").textContent = prize.detail || "";
+  $("detail").textContent = prize.detail;
   $("codeShown").textContent = KOD;
   show("won");
 }
 
-async function checkCode() {
-  if (!window.API_URL) return message("Faqja nuk është gati", "Lidhja me listën e kodeve nuk është vendosur ende.", false);
-  if (!KOD) return message("Mungon kodi", "Ky link nuk ka kod. Përdor linkun që të dërgoi @zemerpako në DM.", false);
-  show("loading");
-  try {
-    const r = await api({ action: "check", kod: KOD });
-    if (r.status === "invalid") return message("Kod i pavlefshëm", "Ky kod nuk ekziston. Kontrollo linkun që të dërgoi @zemerpako në DM.", false);
-    if (r.status === "used") return showPrize(r.prize, true);
-    if (r.status === "unused") return show("start");
-    throw new Error(r.error || "unknown");
-  } catch (_) {
-    message("Pa lidhje", "Nuk u lidhëm dot. Kontrollo internetin dhe provo sërish.", true);
-  }
+function playedHere() {
+  try { return localStorage.getItem("played:" + KOD) === "1"; } catch (_) { return false; }
+}
+
+function checkCode() {
+  if (!KOD) return message("Mungon kodi", "Ky link nuk ka kod. Përdor linkun që të dërgoi @zemerpako në DM.");
+  if (!isCodeShape(KOD)) return message("Kod i pavlefshëm", "Ky kod nuk është i saktë. Kontrollo linkun që të dërgoi @zemerpako në DM.");
+  if (playedHere()) return showPrize(true);
+  show("start");
 }
 
 function setFill() {
@@ -193,26 +177,13 @@ function onMotion(e) {
   }
 }
 
-// The prize is picked by the server, which also marks the code as used.
-async function win() {
+function win() {
   if (done) return;
   done = true;
   window.removeEventListener("devicemotion", onMotion);
-  $("shakeTitle").textContent = "Po hapim dhuratën…";
-  $("meter").classList.add("shaking");
-  try {
-    const r = await api({ action: "play", kod: KOD });
-    if (r.status === "won") {
-      if (navigator.vibrate) navigator.vibrate([80, 60, 160]);
-      return showPrize(r.prize, false);
-    }
-    if (r.status === "used") return showPrize(r.prize, true);
-    if (r.status === "invalid") return message("Kod i pavlefshëm", "Ky kod nuk ekziston. Kontrollo linkun që të dërgoi @zemerpako në DM.", false);
-    throw new Error(r.error || "unknown");
-  } catch (_) {
-    // Nothing was saved, so the code is still unused; checking again brings them back to the start.
-    message("Pa lidhje", "Dhurata nuk u hap dot sepse ra interneti. Kodi yt është ende i vlefshëm, provo sërish.", true);
-  }
+  try { localStorage.setItem("played:" + KOD, "1"); } catch (_) {}
+  if (navigator.vibrate) navigator.vibrate([80, 60, 160]);
+  showPrize(false);
 }
 
 async function start() {
@@ -244,7 +215,6 @@ async function start() {
 }
 
 $("go").addEventListener("click", start);
-$("retry").addEventListener("click", checkCode);
 checkCode();
 </script>
 </body>

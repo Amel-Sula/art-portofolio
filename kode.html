@@ -53,6 +53,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .status { font-size: .9rem; margin: 0; min-height: 1.3em; }
 .status.ok { color: var(--ok); }
 .status.bad { color: var(--bad); }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1.2rem; margin: 0; }
+.row { display: flex; gap: 8px; }
+.row input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: .1em; }
+.verdict { border-radius: 12px; padding: 12px; display: grid; gap: 6px; background: var(--bg); }
+.verdict strong { font-size: 1.05rem; }
+.list { display: grid; gap: 0; max-height: 320px; overflow-y: auto; }
+.item { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.item .k { font-weight: 600; letter-spacing: .08em; }
+.pill { font-size: .75rem; border-radius: 999px; padding: 2px 8px; white-space: nowrap; align-self: center; }
+.pill.given { background: var(--ok); color: var(--card); }
+.pill.open { border: 1px solid var(--line); color: var(--muted); }
 .sheet-link { color: var(--accent); text-align: center; padding: 8px; font-weight: 600; }
 [hidden] { display: none !important; }
 </style>
@@ -60,13 +71,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 <body>
 <main>
   <h1>Kodet e dhuratave</h1>
-  <p class="sub">Për çdo porosi, shtyp “Kod i ri”, pastaj ngjite mesazhin në DM të klientes. Çdo link funksionon vetëm një herë.</p>
-
-  <section class="card" id="keyCard">
-    <label for="key">Fjalëkalimi</label>
-    <input id="key" type="password" autocomplete="current-password" placeholder="Fjalëkalimi i administratorit">
-    <p class="sub" style="font-size:.85rem">Herën e parë, fjalëkalimi që shkruan këtu bëhet fjalëkalimi yt (të paktën 4 shkronja). Ruhet vetëm në këtë telefon.</p>
-  </section>
+  <p class="sub">Për çdo porosi: shtyp “Kod i ri”, kopjo mesazhin dhe ngjite në DM të klientes. Kur të dërgon screenshot-in, kontrolloje kodin më poshtë.</p>
 
   <button id="new" class="big">Kod i ri</button>
   <p class="status" id="status" role="status"></p>
@@ -78,56 +83,76 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     <button id="copy">Kopjo mesazhin</button>
   </section>
 
-  <a id="sheet" class="sheet-link" href="#" target="_blank" rel="noopener" hidden>Hap listën e kodeve (Google Sheet)</a>
+  <section class="card">
+    <h2>Kontrollo një kod</h2>
+    <label for="checkInput">Kodi nga screenshot-i</label>
+    <div class="row">
+      <input id="checkInput" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="P.sh. AB12CD">
+      <button id="checkBtn">Kontrollo</button>
+    </div>
+    <div class="verdict" id="verdict" hidden>
+      <strong id="vTitle"></strong>
+      <span id="vText"></span>
+      <button id="giveBtn" hidden>Shëno: dhurata u dha</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Të gjitha kodet (<span id="count">0</span>)</h2>
+    <div class="list" id="list"></div>
+    <p class="sub" style="font-size:.8rem">Lista ruhet vetëm në këtë telefon dhe në këtë shfletues. Mos i fshi të dhënat e Chrome.</p>
+  </section>
 </main>
 
-<script src="config.js"></script>
+<script src="prizes.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const GAME_URL = new URL("./", location.href).href;
+
+// Saved codes: [{ kod, created, given }]
+function load() {
+  try { return JSON.parse(localStorage.getItem("codes") || "[]"); } catch (_) { return []; }
+}
+function save(codes) {
+  try { localStorage.setItem("codes", JSON.stringify(codes)); return true; } catch (_) { return false; }
+}
 
 function status(text, kind) {
   $("status").textContent = text;
   $("status").className = "status" + (kind ? " " + kind : "");
 }
 
-try {
-  $("key").value = localStorage.getItem("adminKey") || "";
-  const sheetUrl = localStorage.getItem("sheetUrl");
-  if (sheetUrl) { $("sheet").href = sheetUrl; $("sheet").hidden = false; }
-} catch (_) {}
-$("key").addEventListener("change", () => {
-  try { localStorage.setItem("adminKey", $("key").value); } catch (_) {}
-});
+const fmt = t => new Date(t).toLocaleDateString("sq-AL", { day: "numeric", month: "short" });
 
-$("new").addEventListener("click", async () => {
-  if (!window.API_URL) return status("Lidhja me Google Sheet nuk është vendosur ende (config.js).", "bad");
-  const key = $("key").value.trim();
-  if (!key) return status("Shkruaj fjalëkalimin më parë.", "bad");
-  try { localStorage.setItem("adminKey", key); } catch (_) {}
-  $("new").disabled = true;
-  status("Duke krijuar kodin…");
-  try {
-    const res = await fetch(window.API_URL + "?" + new URLSearchParams({ action: "new", key }));
-    const r = await res.json();
-    if (r.error === "wrong_key") return status("Fjalëkalimi është gabim.", "bad");
-    if (r.error === "short_key") return status("Fjalëkalimi duhet të ketë të paktën 4 shkronja.", "bad");
-    if (!r.kod) throw new Error(r.error || "unknown");
-    const link = GAME_URL + "?kod=" + r.kod;
-    $("code").textContent = r.kod;
-    $("msg").value = "Faleminderit për porosinë! 🎁 Hape këtë link në telefon dhe shkunde telefonin për të fituar një dhuratë: " + link;
-    $("result").hidden = false;
-    if (r.sheetUrl) {
-      $("sheet").href = r.sheetUrl;
-      $("sheet").hidden = false;
-      try { localStorage.setItem("sheetUrl", r.sheetUrl); } catch (_) {}
-    }
-    status("Kodi u krijua. Kopjo mesazhin dhe dërgoje në DM.", "ok");
-  } catch (_) {
-    status("Nuk u lidhëm dot. Kontrollo internetin dhe provo sërish.", "bad");
-  } finally {
-    $("new").disabled = false;
-  }
+function render() {
+  const codes = load();
+  $("count").textContent = codes.length;
+  $("list").replaceChildren(...codes.slice().reverse().map(c => {
+    const row = document.createElement("div");
+    row.className = "item";
+    const left = document.createElement("span");
+    left.innerHTML = '<span class="k"></span> · <span class="d"></span>';
+    left.querySelector(".k").textContent = c.kod;
+    left.querySelector(".d").textContent = fmt(c.created) + " · " + prizeFor(c.kod).name;
+    const pill = document.createElement("span");
+    pill.className = "pill " + (c.given ? "given" : "open");
+    pill.textContent = c.given ? "U dha" : "Pa dhënë";
+    row.append(left, pill);
+    return row;
+  }));
+}
+
+$("new").addEventListener("click", () => {
+  const codes = load();
+  let kod;
+  do { kod = newCode(); } while (codes.some(c => c.kod === kod));
+  codes.push({ kod, created: Date.now(), given: false });
+  if (!save(codes)) return status("Kodi nuk u ruajt dot. Mos e përdor faqen në Incognito.", "bad");
+  $("code").textContent = kod;
+  $("msg").value = "Faleminderit për porosinë! 🎁 Hape këtë link në telefon dhe shkunde telefonin për të fituar një dhuratë: " + GAME_URL + "?kod=" + kod;
+  $("result").hidden = false;
+  status("Kodi u krijua. Kopjo mesazhin dhe dërgoje në DM.", "ok");
+  render();
 });
 
 $("copy").addEventListener("click", async () => {
@@ -140,6 +165,43 @@ $("copy").addEventListener("click", async () => {
     status("Mbaje gishtin te mesazhi dhe zgjidh “Kopjo”.", "bad");
   }
 });
+
+let checking = null;
+function check() {
+  const kod = cleanCode($("checkInput").value);
+  const c = load().find(x => x.kod === kod);
+  checking = c ? kod : null;
+  $("verdict").hidden = false;
+  $("giveBtn").hidden = true;
+  if (!kod) {
+    $("vTitle").textContent = "Shkruaj kodin";
+    $("vText").textContent = "";
+  } else if (!c) {
+    $("vTitle").textContent = "❌ Ky kod nuk është në listën tënde";
+    $("vText").textContent = "Nuk e ke krijuar ti këtë kod, ose është shkruar gabim. Mos jep dhuratë.";
+  } else if (c.given) {
+    $("vTitle").textContent = "⚠️ Dhurata për këtë kod është dhënë tashmë";
+    $("vText").textContent = "Dhurata: " + prizeFor(kod).name + ". Mos e jep dy herë.";
+  } else {
+    $("vTitle").textContent = "✅ Kod i vërtetë: " + prizeFor(kod).name;
+    $("vText").textContent = prizeFor(kod).detail + ". Kontrollo që screenshot-i tregon të njëjtën dhuratë.";
+    $("giveBtn").hidden = false;
+  }
+}
+$("checkBtn").addEventListener("click", check);
+$("checkInput").addEventListener("keydown", e => { if (e.key === "Enter") check(); });
+
+$("giveBtn").addEventListener("click", () => {
+  const codes = load();
+  const c = codes.find(x => x.kod === checking);
+  if (!c) return;
+  c.given = true;
+  save(codes);
+  render();
+  check();
+});
+
+render();
 </script>
 </body>
 </html>
