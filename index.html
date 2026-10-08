@@ -115,7 +115,7 @@ const PRIZES = [
 const $ = id => document.getElementById(id);
 const show = id => ["start", "shake", "won"].forEach(s => $(s).hidden = s !== id);
 
-const GOAL = 100;          // how much shaking fills the ring (about 2 seconds of good shaking)
+const GOAL = 200;          // how much shaking fills the ring (about 3-4 seconds of good shaking)
 const THRESHOLD = 4;       // m/s² of movement (gravity removed) that counts as shaking
 const RATE = 14;           // fill speed per m/s² above the threshold, per second
 let energy = 0, last = null, gotEvent = false, done = false, buzzAt = 0;
