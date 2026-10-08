@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="sq">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Shkund & Fito</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Karla:wght@400;600&display=swap">
+<style>
+/* Layout: one centred card on a quiet ground; a fill ring that tracks the shake, then the prize. */
+:root {
+  --bg: #efe9e2;
+  --card: #fbf8f4;
+  --fg: #2c2620;
+  --muted: #7a6e63;
+  --accent: #a0714f;
+  --ring: #e2d8cd;
+  --display: "Fraunces", Georgia, serif;
+  --body: "Karla", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1d1916; --card: #282320; --fg: #f1ebe4; --muted: #b3a597; --accent: #d3a07a; --ring: #3d3530; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body);
+  display: grid; place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+}
+.card {
+  width: 100%; max-width: 380px; background: var(--card); border-radius: 22px;
+  padding: 36px 24px 28px; text-align: center; display: grid; gap: 18px; justify-items: center;
+  box-shadow: 0 20px 50px -30px rgba(60, 40, 20, .45);
+}
+.tag { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 600; font-size: 2rem; line-height: 1.1; margin: 0; text-wrap: balance; }
+p { margin: 0; line-height: 1.5; color: var(--muted); max-width: 30ch; }
+.meter { position: relative; width: 170px; height: 170px; }
+.meter svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.meter circle { fill: none; stroke-width: 10; }
+.meter .track { stroke: var(--ring); }
+.meter .fill { stroke: var(--accent); stroke-linecap: round; stroke-dasharray: 471; stroke-dashoffset: 471; transition: stroke-dashoffset .15s linear; }
+.gift { position: absolute; inset: 0; display: grid; place-items: center; font-size: 56px; }
+.shaking .gift { animation: wobble .35s ease-in-out infinite; }
+@keyframes wobble { 0%,100% { transform: rotate(0) } 25% { transform: rotate(-10deg) } 75% { transform: rotate(10deg) } }
+button {
+  font: 600 1rem var(--body); border: 0; border-radius: 999px; padding: 14px 28px;
+  background: var(--accent); color: var(--card); cursor: pointer;
+}
+button:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+.link { background: none; color: var(--muted); padding: 6px; font-weight: 400; text-decoration: underline; font-size: .9rem; }
+.prize-line { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.prize { font-family: var(--display); font-size: 1.6rem; line-height: 1.2; margin: 0; text-wrap: balance; }
+.reveal { animation: pop .5s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes pop { from { transform: scale(.6); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+.note { font-size: .8rem; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .shaking .gift, .reveal { animation: none; } }
+</style>
+</head>
+<body>
+<main class="card">
+  <span class="tag">Shembull · Dhuratë</span>
+
+  <!-- 1. Start -->
+  <section id="start" style="display:grid;gap:18px;justify-items:center">
+    <div class="gift" style="position:static;font-size:64px" aria-hidden="true">🎁</div>
+    <h1>Shkunde telefonin dhe fito</h1>
+    <p>Shtyp butonin, pastaj shkunde telefonin fort për të zbuluar dhuratën tënde nga Rituals.</p>
+    <button id="go">Fillo</button>
+    <p id="err" class="note" hidden></p>
+  </section>
+
+  <!-- 2. Shaking -->
+  <section id="shake" hidden style="display:grid;gap:18px;justify-items:center">
+    <h1>Shkunde! Shkunde!</h1>
+    <div class="meter" id="meter">
+      <svg viewBox="0 0 170 170" aria-hidden="true">
+        <circle class="track" cx="85" cy="85" r="75"></circle>
+        <circle class="fill" id="fill" cx="85" cy="85" r="75"></circle>
+      </svg>
+      <div class="gift" aria-hidden="true">🎁</div>
+    </div>
+    <p id="hint">Vazhdo të shkundësh derisa rrethi të mbushet.</p>
+    <button id="tap" class="link" hidden>S'ke telefon? Provo me prekje</button>
+  </section>
+
+  <!-- 3. Prize -->
+  <section id="won" hidden style="display:grid;gap:14px;justify-items:center">
+    <div style="font-size:64px" aria-hidden="true">✨</div>
+    <span class="prize-line">Urime! Fitove</span>
+    <h2 class="prize reveal" id="prize"></h2>
+    <p id="detail"></p>
+    <p class="note">Tregoje këtë ekran në dyqan për të marrë dhuratën.</p>
+    <button id="again" class="link">Provo sërish (vetëm për shembullin)</button>
+  </section>
+</main>
+
+<script>
+// Every prize has the same chance: 1 in PRIZES.length.
+const PRIZES = [
+  { name: "The Ritual of Sakura", detail: "Shkumë dushi me lule qershie dhe qumësht orizi" },
+  { name: "The Ritual of Karma", detail: "Krem trupi me lule zambaku dhe çaj të bardhë" },
+  { name: "The Ritual of Ayurveda", detail: "Shkopinj aromatikë për shtëpinë" },
+  { name: "The Ritual of Jing", detail: "Spërkatës për jastëkun, për një gjumë të qetë" },
+  { name: "The Ritual of Hammam", detail: "Pastrues trupi me eukalipt dhe rozmarinë" },
+  { name: "The Ritual of Mehr", detail: "Qiri aromatik me portokall të ëmbël" },
+  { name: "Zbritje 15%", detail: "Në blerjen tënde të radhës" },
+  { name: "Mostër parfumi", detail: "Një mostër falas nga koleksioni i parfumeve" },
+];
+
+const $ = id => document.getElementById(id);
+const show = id => ["start", "shake", "won"].forEach(s => $(s).hidden = s !== id);
+
+const GOAL = 100;          // how much shaking fills the ring
+const THRESHOLD = 14;      // m/s² change that counts as a shake
+let energy = 0, last = null, gotEvent = false, done = false;
+
+function setFill() {
+  $("fill").style.strokeDashoffset = 471 * (1 - Math.min(energy, GOAL) / GOAL);
+}
+
+function onMotion(e) {
+  const a = e.accelerationIncludingGravity;
+  if (!a || a.x == null) return;
+  gotEvent = true;
+  if (last) {
+    const delta = Math.abs(a.x - last.x) + Math.abs(a.y - last.y) + Math.abs(a.z - last.z);
+    if (delta > THRESHOLD) {
+      energy += delta / 6;
+      $("meter").classList.add("shaking");
+      clearTimeout(onMotion.t);
+      onMotion.t = setTimeout(() => $("meter").classList.remove("shaking"), 250);
+      if (navigator.vibrate) navigator.vibrate(15);
+      setFill();
+      if (energy >= GOAL) win();
+    }
+  }
+  last = { x: a.x, y: a.y, z: a.z };
+}
+
+function win() {
+  if (done) return;
+  done = true;
+  window.removeEventListener("devicemotion", onMotion);
+  const p = PRIZES[Math.floor(Math.random() * PRIZES.length)];
+  $("prize").textContent = p.name;
+  $("detail").textContent = p.detail;
+  if (navigator.vibrate) navigator.vibrate([80, 60, 160]);
+  show("won");
+}
+
+async function start() {
+  // iPhone asks for permission to read the motion sensor; it must come from a tap.
+  if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+    try {
+      const res = await DeviceMotionEvent.requestPermission();
+      if (res !== "granted") {
+        $("err").textContent = "Duhet të lejosh lëvizjen e telefonit që loja të funksionojë. Rifresko faqen dhe shtyp “Lejo”.";
+        $("err").hidden = false;
+        return;
+      }
+    } catch (_) { /* fall through and try anyway */ }
+  }
+  energy = 0; last = null; done = false; gotEvent = false; setFill();
+  show("shake");
+  window.addEventListener("devicemotion", onMotion);
+  // No sensor data (e.g. a computer): offer a tap fallback so the page can still be tested.
+  setTimeout(() => {
+    if (!gotEvent && !done) {
+      $("hint").textContent = "Ky link funksionon me telefon. Hape në celular dhe shkunde.";
+      $("tap").hidden = false;
+    }
+  }, 1500);
+}
+
+$("go").addEventListener("click", start);
+$("tap").addEventListener("click", () => { energy += 25; setFill(); if (energy >= GOAL) win(); });
+$("again").addEventListener("click", () => show("start"));
+show("start");
+</script>
+</body>
+</html>
