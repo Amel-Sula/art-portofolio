@@ -180,7 +180,12 @@ async function start() {
   // No sensor data (e.g. a computer): offer a tap fallback so the page can still be tested.
   setTimeout(() => {
     if (!gotEvent && !done) {
-      $("hint").textContent = "Telefoni nuk po dërgon lëvizjen. Hape linkun (https) në Chrome ose Safari, jo si skedar, dhe provo sërish.";
+      $("hint").textContent = !window.isSecureContext
+        // Opened as a file or over http: phones block the motion sensor there.
+        ? "Kjo faqe është hapur si skedar. Telefoni e lejon shkundjen vetëm kur faqja hapet si link interneti (https://…)."
+        : /Android/i.test(navigator.userAgent)
+          ? "Sensori i lëvizjes është i bllokuar. Në Chrome: ⋮ → Cilësimet → Cilësimet e sajtit → Sensorët e lëvizjes → Lejo. Pastaj rifresko faqen."
+          : "Telefoni nuk po dërgon lëvizjen. Hape linkun në Chrome ose Safari dhe provo sërish.";
       $("tap").hidden = false;
     }
   }, 1500);
