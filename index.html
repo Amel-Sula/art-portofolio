@@ -63,7 +63,7 @@ button:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
 </head>
 <body>
 <main class="card">
-  <span class="tag">Shembull · Dhuratë · v4</span>
+  <span class="tag">Shembull · Dhuratë · v5</span>
 
   <!-- 1. Start -->
   <section id="start" style="display:grid;gap:18px;justify-items:center">
@@ -115,10 +115,9 @@ const PRIZES = [
 const $ = id => document.getElementById(id);
 const show = id => ["start", "shake", "won"].forEach(s => $(s).hidden = s !== id);
 
-const GOAL = 6;            // seconds of shaking needed to fill the ring, however hard you shake
-const THRESHOLD = 6;       // m/s² of movement (gravity removed) that counts as shaking
-const HOLD = 0.35;         // a shake keeps counting this long, so the pause between swings still counts
-let energy = 0, last = null, gotEvent = false, done = false, buzzAt = 0, lastShake = -1e9;
+const GOAL = 160;          // shaking needed to fill the ring: about 10 s of strong shaking; harder fills faster, softer slower
+const THRESHOLD = 4;       // m/s² of movement (gravity removed) that counts as shaking
+let energy = 0, last = null, gotEvent = false, done = false, buzzAt = 0;
 
 function setFill() {
   $("fill").style.strokeDashoffset = 471 * (1 - Math.min(energy, GOAL) / GOAL);
@@ -140,9 +139,8 @@ function onMotion(e) {
   const now = performance.now();
   const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
   last = now;
-  if (m > THRESHOLD) lastShake = now;
-  if ((now - lastShake) / 1000 < HOLD && dt > 0) {
-    energy += dt;
+  if (m > THRESHOLD && dt > 0) {
+    energy += (m - THRESHOLD) * dt;   // the harder the shake, the faster it fills
     $("meter").classList.add("shaking");
     clearTimeout(onMotion.t);
     onMotion.t = setTimeout(() => $("meter").classList.remove("shaking"), 250);
